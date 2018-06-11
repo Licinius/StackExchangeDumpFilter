@@ -130,7 +130,7 @@ class StackExchangeFilter:
 		except Exception:
 			print("Error, badges")
 			exit(-1)
-		root_name = 'votes'
+		root_name = 'badges'
 		output_path = 'output/%s'% __class__.BADGES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
