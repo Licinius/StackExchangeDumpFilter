@@ -1,4 +1,3 @@
-
 import argparse
 from filters.StackExchangeFilter import StackExchangeFilter
 #Initialize argparse for argument to parse
@@ -15,7 +14,7 @@ filter = StackExchangeFilter(args.filepath)
 print('Extract posts')
 filter.posts(args.mainTag,args.extrasTags,args.minimumAnswers)
 print('Extract votes')
-#filter.votes()
+filter.votes()
 print('Extract comments')
 filter.comments()
 print('Extract Posts links')

@@ -1,5 +1,14 @@
 import os
-from lxml import etree
+try:
+	from lxml import etree
+except ImportError:
+	raise ImportError("Try: pip install lxml")
+
+try:
+	from bitarray import bitarray
+except ImportError:
+	raise ImportError("Try : pip install bitarray")
+
 class StackExchangeFilter:
 	'''
 		Filter for StackExchange Dump
@@ -15,6 +24,27 @@ class StackExchangeFilter:
 
 	def __init__(self,filepath):
 		self.filepath = filepath + os.sep
+		#Id of the last Post to know the lenght of the bitfield
+		tree_posts = etree.parse(self.filepath+__class__.POSTS_FILEPATH)
+		last_post_id = int(tree_posts.xpath("(//row)[last()]")[0].attrib['Id'])
+		self.bitfield_posts = bitarray(last_post_id+1)
+		self.bitfield_posts.setall(False)
+		#Id of the last User to know the lenght of the bitfield
+		tree_users = etree.parse(self.filepath+__class__.USERS_FILEPATH)
+		last_user_id = int(tree_users.xpath("(//row)[last()]")[0].attrib['Id'])
+		self.bitfield_users = bitarray(last_user_id+2) #For Community wiki need one more cell
+		self.bitfield_users.setall(False)
+
+	def __set_bitfield_users(self,row):
+		owner_user_id = row.attrib.get('OwnerUserId')
+		if(owner_user_id is not None):
+			owner_user_id = int(owner_user_id)
+			self.bitfield_users[owner_user_id] = True
+
+		last_editor_user_id = row.attrib.get('LastEditorUserId')
+		if(last_editor_user_id is not None):
+			last_editor_user_id = int(last_editor_user_id)
+			self.bitfield_users[last_editor_user_id] = True
 
 	def posts(self,main_tag,extras_tags,minimum_answers=0):
 		try:
@@ -28,7 +58,6 @@ class StackExchangeFilter:
 		main_filter=""
 		if(main_tag is not None):
 			main_filter = 'contains(@Tags,"<%s>") and ' % main_tag
-
 		extras_filters = ""
 		first=True
 		if(extras_tags is not None):
@@ -47,16 +76,21 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
 			for row in tree.xpath(path):
+				row_id = int(row.attrib['Id'])
+				self.__set_bitfield_users(row)
+				self.bitfield_posts[row_id] = True
 				output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
-				possibleAnswers = row.xpath("following-sibling::*[@ParentId='%s']" %row.attrib['Id'])
-				for answer in possibleAnswers:
+				possible_answers = row.xpath("following-sibling::*[@ParentId='%s']" %row.attrib['Id'])
+				for answer in possible_answers:
+					answer_id = int(answer.attrib['Id'])
+					self.bitfield_posts[answer_id] = True
+					self.__set_bitfield_users(answer)
 					output.write(etree.tostring(answer,pretty_print=True).decode("utf-8"))
 			output.write("</%s>" %root_name)
 
 	def votes(self):
 		try:
 			tree_votes = etree.parse(self.filepath+__class__.VOTES_FILEPATH)
-			tree_posts = etree.parse('output/'+__class__.POSTS_FILEPATH)
 		except Exception:
 			print("Error, vote")
 			exit(-1)
@@ -64,8 +98,9 @@ class StackExchangeFilter:
 		output_path = 'output/%s'% __class__.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
-			for row in tree_votes.xpath('//row'):				
-				if (tree_posts.xpath('//row[@Id="%s"]' %row.attrib['PostId']) ):
+			for row in tree_votes.xpath('//row'):	
+				postId = int(row.attrib['PostId'])
+				if (self.bitfield_posts[postId]):
 					output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
 			output.write('</%s>' %root_name)
 
@@ -73,7 +108,6 @@ class StackExchangeFilter:
 	def comments(self):
 		try:
 			tree_comments = etree.parse(self.filepath+__class__.COMMENTS_FILEPATH)
-			tree_posts = etree.parse('output/'+__class__.POSTS_FILEPATH)
 		except Exception:
 			print("Error, comments")
 			exit(-1)
@@ -82,14 +116,14 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
 			for row in tree_comments.xpath("//row"):
-				if (tree_posts.xpath('//row[@Id="%s"]' %row.attrib['PostId'])):
+				postId = int(row.attrib['PostId'])
+				if (self.bitfield_posts[postId]):
 					output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
 			output.write("</%s>" %root_name)
 
 	def postLinks(self):
 		try:
 			tree_postLinks = etree.parse(self.filepath+__class__.POSTLINKS_FILEPATH)
-			tree_posts = etree.parse('output/'+__class__.POSTS_FILEPATH)
 		except Exception:
 			print("Error, postlinks")
 			exit(-1)
@@ -98,16 +132,15 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
 			for row in tree_postLinks.findall("row"):
-				if (tree_posts.xpath('//row[@Id="%s"]' %row.attrib['PostId']) 
-					or tree_posts.xpath('//row[@Id="%s"]' %row.attrib['RelatedPostId'])) :
+				post_id = int(row.attrib['PostId'])
+				related_post_id = int(row.attrib['RelatedPostId'])
+				if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
 			output.write("</%s>" %root_name)
 
 	def users(self):
 		try:
 			tree_users = etree.parse(self.filepath+__class__.USERS_FILEPATH)
-			tree_posts = etree.parse('output/'+__class__.POSTS_FILEPATH)
-			tree_comments = etree.parse('output/' + __class__.COMMENTS_FILEPATH)
 		except Exception:
 			print("Error, users")
 			exit(-1)
@@ -117,16 +150,14 @@ class StackExchangeFilter:
 			output.write("<%s>" %root_name)
 			for row in tree_users.xpath('//row'):
 				# if the id of the row is present in at least one post
-				userId = row.attrib['Id']
-				if (tree_posts.xpath('//row[@OwnerUserId="%s" or @LastEditorUserId="%s"]' %(userId,userId))
-					or tree_comments.xpath('//row[@UserId="%s"]' %userId)):
+				user_id = int(row.attrib['Id'])
+				if (self.bitfield_users[user_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
 			output.write("</%s>" %root_name)
 
 	def badges(self):
 		try:
 			tree_badges = etree.parse(self.filepath+__class__.BADGES_FILEPATH)
-			tree_users = etree.parse('output/'+__class__.USERS_FILEPATH)
 		except Exception:
 			print("Error, badges")
 			exit(-1)
@@ -134,7 +165,9 @@ class StackExchangeFilter:
 		output_path = 'output/%s'% __class__.BADGES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write("<%s>" %root_name)
-			for row in tree_badges.xpath('//row'):				
-				if (tree_users.xpath('//row[@Id="%s"]' %row.attrib['UserId']) ):
+			for row in tree_badges.xpath('//row'):		
+
+				user_id = int(row.attrib['UserId'])		
+				if (self.bitfield_users[user_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode("utf-8"))
 			output.write('</%s>' %root_name)
