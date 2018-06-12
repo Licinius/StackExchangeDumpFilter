@@ -1,5 +1,6 @@
 import os
 try:
+	import xml.etree.ElementTree as ET
 	from lxml import etree
 except ImportError:
 	raise ImportError('Try: pip install lxml')
@@ -8,7 +9,10 @@ try:
 	from bitarray import bitarray
 except ImportError:
 	raise ImportError('Try : pip install bitarray')
-
+try:
+	from file_read_backwards import FileReadBackwards
+except ImportError:
+	raise ImportError('Try : pip install file-read-backwards')
 class StackExchangeFilter:
 	'''
 	Filter for StackExchange Dump
@@ -43,14 +47,23 @@ class StackExchangeFilter:
 
 		'''
 		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
+		index=0
+		row = ""
+		with FileReadBackwards(self.filepath + StackExchangeFilter.POSTS_FILEPATH, encoding="utf-8") as frb:
+		    # getting lines by lines starting from the last line up
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		last_post_id = int(row.attrib['Id'])
 		#Id of the last Post to know the length of the bitfield
-		tree_posts = etree.parse(self.filepath + StackExchangeFilter.POSTS_FILEPATH)
-		last_post_id = int(tree_posts.xpath('(//row)[last()]')[0].attrib['Id'])
 		self.bitfield_posts = bitarray(last_post_id+1)
 		self.bitfield_posts.setall(False)
 		#Id of the last User to know the length of the bitfield
-		tree_users = etree.parse(self.filepath + StackExchangeFilter.USERS_FILEPATH)
-		last_user_id = int(tree_users.xpath('(//row)[last()]')[0].attrib['Id'])
+		with FileReadBackwards(self.filepath + StackExchangeFilter.USERS_FILEPATH, encoding="utf-8") as frb:
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		last_user_id = int(row.attrib['Id'])
 		self.bitfield_users = bitarray(last_user_id+2) #For Community wiki need one more cell
 		self.bitfield_users.setall(False)
 
@@ -95,14 +108,7 @@ class StackExchangeFilter:
 		Returns : 
 			self (StackExchangeFilter) : 	The current object
 		'''
-		try:
-			tree = etree.parse(self.filepath + StackExchangeFilter.POSTS_FILEPATH)
-		except Exception:
-			print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
-			exit(1)
-
 		root_name = 'posts'
-
 		main_filter=''
 		if(main_tag is not None):
 			main_filter = 'contains(@Tags,"<%s>") and ' % main_tag
@@ -119,21 +125,28 @@ class StackExchangeFilter:
 			extras_filters += ') '
 
 
-		path = '//row[%s @AnswerCount>=%s %s ]' %(main_filter,minimum_answers,extras_filters)
-		output_path = 'output/%s'% __class__.POSTS_FILEPATH
+		question_path = 'self::*[%s @AnswerCount>=%s %s ]' %(main_filter,minimum_answers,extras_filters)
+		output_path = 'output/%s'% StackExchangeFilter.POSTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree.xpath(path):
-				row_id = int(row.attrib['Id'])
-				self.__set_bitfield_users(row)
-				self.bitfield_posts[row_id] = True
-				output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
-				possible_answers = row.xpath('following-sibling::*[@ParentId="%s"]' %row_id)
-				for answer in possible_answers:
-					answer_id = int(answer.attrib['Id'])
-					self.bitfield_posts[answer_id] = True
-					self.__set_bitfield_users(answer)
-					output.write(etree.tostring(answer,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row'):
+					row_id = int(row.attrib['Id'])
+					if (row.xpath(question_path)) :
+						self.__set_bitfield_users(row)
+						self.bitfield_posts[row_id] = True
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					else:
+						parent_id = row.attrib.get('ParentId')
+						if(parent_id is not None):
+							if(self.bitfield_posts[int(parent_id)]):
+								self.bitfield_posts[row_id] = True
+								self.__set_bitfield_users(row)
+								output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
+			except FileNotFoundError:
+				print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self
 
@@ -143,19 +156,19 @@ class StackExchangeFilter:
 		Returns :
 			self (StackExchangeFilter) : The current object
 		'''
-		try:
-			tree_votes = etree.parse(self.filepath + StackExchangeFilter.VOTES_FILEPATH)
-		except Exception:
-			print('Please check if the dump of "vote" is present in the filepath')
-			exit(1)
 		root_name = 'votes'
 		output_path = 'output/%s'%   StackExchangeFilter.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree_votes.xpath('//row'):	
-				post_id = int(row.attrib['PostId'])
-				if (self.bitfield_posts[post_id]):
-					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row'):
+					post_id = int(row.attrib['PostId'])
+					if (self.bitfield_posts[post_id]):
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
+			except FileNotFoundError:
+				print('Please check if the dump of "vote" is present in the filepath')
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self
 
@@ -166,20 +179,19 @@ class StackExchangeFilter:
 		Returns :
 			self (StackExchangeFilter) : The current object
 		'''
-		try:
-			tree_comments = etree.parse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH)
-		except Exception:
-			print('Please check if the dump of "comments" is present in the filepath')
-			exit(1)
 		root_name = 'comments'
 		output_path = 'output/%s'%   StackExchangeFilter.COMMENTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree_comments.xpath('//row'):
-				post_id = int(row.attrib['PostId'])
-				if (self.bitfield_posts[post_id]):
-					self.__set_bitfield_users(row)
-					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row'):
+					post_id = int(row.attrib['PostId'])
+					if (self.bitfield_posts[post_id]):
+						self.__set_bitfield_users(row)
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			except FileNotFoundError:
+				print('Please check if the dump of "comments" is present in the filepath')
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self
 
@@ -189,22 +201,22 @@ class StackExchangeFilter:
 		Returns :
 			self (StackExchangeFilter) : The current object
 		'''
-		try:
-			tree_postLinks = etree.parse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH)
-		except Exception:
-			print('Please check if the dump of "postlinks" is present in the filepath')
-			exit(1)
 		root_name = 'postlinks'
 		output_path = 'output/%s'%   StackExchangeFilter.POSTLINKS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree_postLinks.findall('row'):
-				post_id = int(row.attrib['PostId'])
-				related_post_id = int(row.attrib['RelatedPostId'])
-				if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
-					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row'):
+					post_id = int(row.attrib['PostId'])
+					related_post_id = int(row.attrib['RelatedPostId'])
+					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			except FileNotFoundError:
+				print('Please check if the dump of "postlinks" is present in the filepath')
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self
+
 	def users(self):
 		'''
 		This function will be fired to retrieve the users corresponding to the selected users while browsing the post
@@ -212,20 +224,18 @@ class StackExchangeFilter:
 		Returns :
 			self (StackExchangeFilter) : The current object
 		'''
-		try:
-			tree_users = etree.parse(self.filepath + StackExchangeFilter.USERS_FILEPATH)
-		except Exception:
-			print('Please check if the dump of "users" is present in the filepath')
-			exit(1)
 		root_name = 'users'
 		output_path = 'output/%s'%   StackExchangeFilter.USERS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree_users.xpath('//row'):
-				# if the id of the row is present in at least one post
-				user_id = int(row.attrib['Id'])
-				if (self.bitfield_users[user_id]):
-					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row'):
+					user_id = int(row.attrib['Id'])
+					if (self.bitfield_users[user_id]):
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			except FileNotFoundError:
+				print('Please check if the dump of "users" is present in the filepath')
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self
 
@@ -235,19 +245,17 @@ class StackExchangeFilter:
 		Returns :
 			self (StackExchangeFilter) : The current object
 		'''
-		try:
-			tree_badges = etree.parse(self.filepath + StackExchangeFilter.BADGES_FILEPATH)
-		except Exception:
-			print('Please check if the dump of "badges" is present in the filepath')
-			exit(1)
 		root_name = 'badges'
 		output_path = 'output/%s'%   StackExchangeFilter.BADGES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
-			for row in tree_badges.xpath('//row'):		
-
-				user_id = int(row.attrib['UserId'])		
-				if (self.bitfield_users[user_id]):
-					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			try:
+				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row'):
+					user_id = int(row.attrib['UserId'])		
+					if (self.bitfield_users[user_id]):
+						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+			except Exception:
+				print('Please check if the dump of "badges" is present in the filepath')
+				exit(1)
 			output.write('</%s>' %root_name)
 		return self

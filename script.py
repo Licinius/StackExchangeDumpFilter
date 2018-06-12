@@ -10,7 +10,9 @@ parser.add_argument('-ma','--minimumAnswers',metavar="minimumAnswers",type=int,n
 args = parser.parse_args()
 
 ##Start script##
+print('Start')
 filter = StackExchangeFilter(args.filepath)
+
 print('Extract posts')
 filter.posts(args.mainTag,args.extrasTags,args.minimumAnswers)
 print('Extract votes')
