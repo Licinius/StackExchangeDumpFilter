@@ -44,12 +44,12 @@ class StackExchangeFilter:
 		'''
 		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
 		#Id of the last Post to know the length of the bitfield
-		tree_posts = etree.parse(self.filepath+__class__.POSTS_FILEPATH)
+		tree_posts = etree.parse(self.filepath + StackExchangeFilter.POSTS_FILEPATH)
 		last_post_id = int(tree_posts.xpath('(//row)[last()]')[0].attrib['Id'])
 		self.bitfield_posts = bitarray(last_post_id+1)
 		self.bitfield_posts.setall(False)
 		#Id of the last User to know the length of the bitfield
-		tree_users = etree.parse(self.filepath+__class__.USERS_FILEPATH)
+		tree_users = etree.parse(self.filepath + StackExchangeFilter.USERS_FILEPATH)
 		last_user_id = int(tree_users.xpath('(//row)[last()]')[0].attrib['Id'])
 		self.bitfield_users = bitarray(last_user_id+2) #For Community wiki need one more cell
 		self.bitfield_users.setall(False)
@@ -96,10 +96,10 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : 	The current object
 		'''
 		try:
-			tree = etree.parse(self.filepath+__class__.POSTS_FILEPATH)
+			tree = etree.parse(self.filepath + StackExchangeFilter.POSTS_FILEPATH)
 		except Exception:
-			print('Invalid filepath : %s' %self.filepath+__class__.POSTS_FILEPATH)
-			exit(-1)
+			print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
+			exit(1)
 
 		root_name = 'posts'
 
@@ -144,12 +144,12 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : The current object
 		'''
 		try:
-			tree_votes = etree.parse(self.filepath+__class__.VOTES_FILEPATH)
+			tree_votes = etree.parse(self.filepath + StackExchangeFilter.VOTES_FILEPATH)
 		except Exception:
 			print('Please check if the dump of "vote" is present in the filepath')
-			exit(-1)
+			exit(1)
 		root_name = 'votes'
-		output_path = 'output/%s'% __class__.VOTES_FILEPATH
+		output_path = 'output/%s'%   StackExchangeFilter.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_votes.xpath('//row'):	
@@ -167,12 +167,12 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : The current object
 		'''
 		try:
-			tree_comments = etree.parse(self.filepath+__class__.COMMENTS_FILEPATH)
+			tree_comments = etree.parse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH)
 		except Exception:
 			print('Please check if the dump of "comments" is present in the filepath')
-			exit(-1)
+			exit(1)
 		root_name = 'comments'
-		output_path = 'output/%s'% __class__.COMMENTS_FILEPATH
+		output_path = 'output/%s'%   StackExchangeFilter.COMMENTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_comments.xpath('//row'):
@@ -190,12 +190,12 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : The current object
 		'''
 		try:
-			tree_postLinks = etree.parse(self.filepath+__class__.POSTLINKS_FILEPATH)
+			tree_postLinks = etree.parse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH)
 		except Exception:
 			print('Please check if the dump of "postlinks" is present in the filepath')
-			exit(-1)
+			exit(1)
 		root_name = 'postlinks'
-		output_path = 'output/%s'% __class__.POSTLINKS_FILEPATH
+		output_path = 'output/%s'%   StackExchangeFilter.POSTLINKS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_postLinks.findall('row'):
@@ -213,12 +213,12 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : The current object
 		'''
 		try:
-			tree_users = etree.parse(self.filepath+__class__.USERS_FILEPATH)
+			tree_users = etree.parse(self.filepath + StackExchangeFilter.USERS_FILEPATH)
 		except Exception:
 			print('Please check if the dump of "users" is present in the filepath')
-			exit(-1)
+			exit(1)
 		root_name = 'users'
-		output_path = 'output/%s'% __class__.USERS_FILEPATH
+		output_path = 'output/%s'%   StackExchangeFilter.USERS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_users.xpath('//row'):
@@ -236,12 +236,12 @@ class StackExchangeFilter:
 			self (StackExchangeFilter) : The current object
 		'''
 		try:
-			tree_badges = etree.parse(self.filepath+__class__.BADGES_FILEPATH)
+			tree_badges = etree.parse(self.filepath + StackExchangeFilter.BADGES_FILEPATH)
 		except Exception:
 			print('Please check if the dump of "badges" is present in the filepath')
-			exit(-1)
+			exit(1)
 		root_name = 'badges'
-		output_path = 'output/%s'% __class__.BADGES_FILEPATH
+		output_path = 'output/%s'%   StackExchangeFilter.BADGES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_badges.xpath('//row'):		
