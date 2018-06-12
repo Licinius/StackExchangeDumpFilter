@@ -1,6 +1,6 @@
 # StackExchangeDumpFilter
 
-StackExchangeDumpFilter allows you to filter a stack Exchange dump 
+StackExchangeDumpFilter allows you to filter a Stack Exchange dump 
 
 ## Installation
 
