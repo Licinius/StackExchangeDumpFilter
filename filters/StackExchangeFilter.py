@@ -189,6 +189,7 @@ class StackExchangeFilter:
 					if (self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
 			except FileNotFoundError:
 				print('Please check if the dump of "comments" is present in the filepath')
 				exit(1)
@@ -211,6 +212,7 @@ class StackExchangeFilter:
 					related_post_id = int(row.attrib['RelatedPostId'])
 					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
 			except FileNotFoundError:
 				print('Please check if the dump of "postlinks" is present in the filepath')
 				exit(1)
@@ -233,6 +235,7 @@ class StackExchangeFilter:
 					user_id = int(row.attrib['Id'])
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
 			except FileNotFoundError:
 				print('Please check if the dump of "users" is present in the filepath')
 				exit(1)
@@ -254,6 +257,7 @@ class StackExchangeFilter:
 					user_id = int(row.attrib['UserId'])		
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+					row.clear()
 			except Exception:
 				print('Please check if the dump of "badges" is present in the filepath')
 				exit(1)
