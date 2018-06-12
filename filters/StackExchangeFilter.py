@@ -42,7 +42,7 @@ class StackExchangeFilter:
 			filepath (str):	A filepath of the dump without the last separator
 
 		'''
-		self.filepath = filepath + os.sep
+		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
 		#Id of the last Post to know the length of the bitfield
 		tree_posts = etree.parse(self.filepath+__class__.POSTS_FILEPATH)
 		last_post_id = int(tree_posts.xpath('(//row)[last()]')[0].attrib['Id'])
@@ -71,8 +71,30 @@ class StackExchangeFilter:
 		if(last_editor_user_id is not None):
 			last_editor_user_id = int(last_editor_user_id)
 			self.bitfield_users[last_editor_user_id] = True
+
+		user_id = row.attrib.get('UserId')
+		if(user_id is not None):
+			user_id = int(user_id)
+			self.bitfield_users[user_id] = True
 		return self.bitfield_users
 	def posts(self,main_tag,extras_tags,minimum_answers=0):
+		'''
+		This function will filter the posts of the dump like this
+			\\row[contains(@Tags,'<mainTag>')
+				and @AnswersCount >= minimum_answers
+				and (contains(@Tags,'<extras_tags[0]>')
+					or contains(@Tags,'<extras_tags[1]>')
+					...
+					or contains(@Tags,'<extras_tags[n]>')
+				)]
+		Args : 
+			main_tag (str) :		The tag required in the query 
+			extras_tags (array) :	The optionals tags in the query
+			minimum_answers (int) :	The minimum number of answers of a question (default=0)
+
+		Returns : 
+			self (StackExchangeFilter) : 	The current object
+		'''
 		try:
 			tree = etree.parse(self.filepath+__class__.POSTS_FILEPATH)
 		except Exception:
@@ -106,52 +128,71 @@ class StackExchangeFilter:
 				self.__set_bitfield_users(row)
 				self.bitfield_posts[row_id] = True
 				output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
-				possible_answers = row.xpath('following-sibling::*[@ParentId="%s"]' %row.attrib['Id'])
+				possible_answers = row.xpath('following-sibling::*[@ParentId="%s"]' %row_id)
 				for answer in possible_answers:
 					answer_id = int(answer.attrib['Id'])
 					self.bitfield_posts[answer_id] = True
 					self.__set_bitfield_users(answer)
 					output.write(etree.tostring(answer,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
+		return self
 
 	def votes(self):
+		'''
+		This function will be fired to retrieve the votes corresponding to the selected posts in the function posts
+		Returns :
+			self (StackExchangeFilter) : The current object
+		'''
 		try:
 			tree_votes = etree.parse(self.filepath+__class__.VOTES_FILEPATH)
 		except Exception:
-			print('Error, vote')
+			print('Please check if the dump of "vote" is present in the filepath')
 			exit(-1)
 		root_name = 'votes'
 		output_path = 'output/%s'% __class__.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_votes.xpath('//row'):	
-				postId = int(row.attrib['PostId'])
-				if (self.bitfield_posts[postId]):
+				post_id = int(row.attrib['PostId'])
+				if (self.bitfield_posts[post_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
+		return self
 
 
 	def comments(self):
+		'''
+		This function will be fired to retrieve the comments corresponding to the selected posts in the function posts
+		Returns :
+			self (StackExchangeFilter) : The current object
+		'''
 		try:
 			tree_comments = etree.parse(self.filepath+__class__.COMMENTS_FILEPATH)
 		except Exception:
-			print('Error, comments')
+			print('Please check if the dump of "comments" is present in the filepath')
 			exit(-1)
 		root_name = 'comments'
 		output_path = 'output/%s'% __class__.COMMENTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			for row in tree_comments.xpath('//row'):
-				postId = int(row.attrib['PostId'])
-				if (self.bitfield_posts[postId]):
+				post_id = int(row.attrib['PostId'])
+				if (self.bitfield_posts[post_id]):
+					self.__set_bitfield_users(row)
 					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
+		return self
 
 	def postLinks(self):
+		'''
+		This function will be fired to retrieve the postlinks corresponding to the selected posts in the function posts
+		Returns :
+			self (StackExchangeFilter) : The current object
+		'''
 		try:
 			tree_postLinks = etree.parse(self.filepath+__class__.POSTLINKS_FILEPATH)
 		except Exception:
-			print('Error, postlinks')
+			print('Please check if the dump of "postlinks" is present in the filepath')
 			exit(-1)
 		root_name = 'postlinks'
 		output_path = 'output/%s'% __class__.POSTLINKS_FILEPATH
@@ -163,12 +204,18 @@ class StackExchangeFilter:
 				if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
-
+		return self
 	def users(self):
+		'''
+		This function will be fired to retrieve the users corresponding to the selected users while browsing the post
+		and comments
+		Returns :
+			self (StackExchangeFilter) : The current object
+		'''
 		try:
 			tree_users = etree.parse(self.filepath+__class__.USERS_FILEPATH)
 		except Exception:
-			print('Error, users')
+			print('Please check if the dump of "users" is present in the filepath')
 			exit(-1)
 		root_name = 'users'
 		output_path = 'output/%s'% __class__.USERS_FILEPATH
@@ -180,12 +227,18 @@ class StackExchangeFilter:
 				if (self.bitfield_users[user_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
+		return self
 
 	def badges(self):
+		'''
+		This function will be fired to retrieve the badges owned by the users selected
+		Returns :
+			self (StackExchangeFilter) : The current object
+		'''
 		try:
 			tree_badges = etree.parse(self.filepath+__class__.BADGES_FILEPATH)
 		except Exception:
-			print('Error, badges')
+			print('Please check if the dump of "badges" is present in the filepath')
 			exit(-1)
 		root_name = 'badges'
 		output_path = 'output/%s'% __class__.BADGES_FILEPATH
@@ -197,3 +250,4 @@ class StackExchangeFilter:
 				if (self.bitfield_users[user_id]):
 					output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 			output.write('</%s>' %root_name)
+		return self
