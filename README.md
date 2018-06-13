@@ -10,6 +10,9 @@ StackExchangeDumpFilter allows you to filter a Stack Exchange dump
 2. Install bitarray
      > pip install bitarray
      
+3. Install file-read-backwards
+     > pip install file-read-backwards
+     
 ## How to use it
 In the root of the folder
 
