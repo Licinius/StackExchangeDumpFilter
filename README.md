@@ -10,6 +10,9 @@ StackExchangeDumpFilter allows you to filter a Stack Exchange dump
 2. Install bitarray
      > pip install bitarray
      
+3. Install file-read-backwards
+     > pip install file-read-backwards
+     
 ## How to use it
 In the root of the folder
 
@@ -19,6 +22,6 @@ In the root of the folder
   
     python script.py -h
   
-  To display the help 
+  To display help 
 ## Post-Scriptum
   If you are a Windows user : pip install lxml should work but you may have trouble installing bitarray.
