@@ -49,6 +49,7 @@ class StackExchangeFilter:
 		'''
 		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
 		self.pretty_print = pretty_print
+		print(pretty_print)
 		index=0
 		row = ""
 		with FileReadBackwards(self.filepath + StackExchangeFilter.POSTS_FILEPATH, encoding="utf-8") as frb:

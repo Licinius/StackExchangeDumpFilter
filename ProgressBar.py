@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+import sys
 class ProgressBar():
     '''
     Class inspire by https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -31,7 +33,8 @@ class ProgressBar():
         filled_length = int(self.length * iteration // self.total)
         bar = self.fill * filled_length + '-' * (self.length - filled_length)
         percent = ("{0:." + str(self.decimals) + "f}").format(100 * (iteration / float(self.total)))
-        print('\r%s |%s| %s%% %s' % (self.prefix, bar, percent, self.suffix), end = '\r')
-        # Print New Line on Complete
-        if iteration == self.total: 
-            print()
+        sys.stdout.write('\r%s |%s| %s%s %s' % (self.prefix, bar, percent, '%', self.suffix)),
+
+        if iteration == self.total:
+            sys.stdout.write('\n')
+        sys.stdout.flush()
