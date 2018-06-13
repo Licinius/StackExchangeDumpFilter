@@ -1,4 +1,5 @@
 import os
+from ProgressBar import ProgressBar
 try:
 	import xml.etree.ElementTree as ET
 	from lxml import etree
@@ -36,7 +37,7 @@ class StackExchangeFilter:
 	USERS_FILEPATH = 'Users.xml'
 	BADGES_FILEPATH = 'Badges.xml'
 
-	def __init__(self,filepath):
+	def __init__(self,filepath,pretty_print = False):
 		'''
 		__init__ allows to set the file path of the dump folder and initialize
 		the bitfields, they start at one to simplify the process
@@ -47,6 +48,7 @@ class StackExchangeFilter:
 
 		'''
 		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
+		self.pretty_print = pretty_print
 		index=0
 		row = ""
 		with FileReadBackwards(self.filepath + StackExchangeFilter.POSTS_FILEPATH, encoding="utf-8") as frb:
@@ -54,18 +56,43 @@ class StackExchangeFilter:
 		    for i in range(2):
 		    	row = frb.readline()
 		row = ET.fromstring(row)
-		last_post_id = int(row.attrib['Id'])
+		self.last_post_id = int(row.attrib['Id'])
 		#Id of the last Post to know the length of the bitfield
-		self.bitfield_posts = bitarray(last_post_id+1)
+		self.bitfield_posts = bitarray(self.last_post_id+1)
 		self.bitfield_posts.setall(False)
 		#Id of the last User to know the length of the bitfield
 		with FileReadBackwards(self.filepath + StackExchangeFilter.USERS_FILEPATH, encoding="utf-8") as frb:
 		    for i in range(2):
 		    	row = frb.readline()
 		row = ET.fromstring(row)
-		last_user_id = int(row.attrib['Id'])
-		self.bitfield_users = bitarray(last_user_id+2) #For Community wiki need one more cell
+		self.last_user_id = int(row.attrib['Id'])
+		self.bitfield_users = bitarray(self.last_user_id+2) #For Community wiki need one more cell
 		self.bitfield_users.setall(False)
+
+		with FileReadBackwards(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH, encoding="utf-8") as frb:
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		self.last_comment_id = int(row.attrib['Id'])
+
+
+		with FileReadBackwards(self.filepath + StackExchangeFilter.BADGES_FILEPATH, encoding="utf-8") as frb:
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		self.last_badge_id = int(row.attrib['Id'])
+
+		with FileReadBackwards(self.filepath + StackExchangeFilter.VOTES_FILEPATH, encoding="utf-8") as frb:
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		self.last_vote_id = int(row.attrib['Id'])
+
+		with FileReadBackwards(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH, encoding="utf-8") as frb:
+		    for i in range(2):
+		    	row = frb.readline()
+		row = ET.fromstring(row)
+		self.last_postlink_id = int(row.attrib['Id'])
 
 	def __set_bitfield_users(self,row):
 		'''
@@ -129,10 +156,13 @@ class StackExchangeFilter:
 		output_path = 'output/%s'% StackExchangeFilter.POSTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
+			progressbar = ProgressBar(self.last_post_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row'):
 					row_id = int(row.attrib['Id'])
-					if (row.xpath(question_path)) :
+					if(self.pretty_print): #Display the progress only if the user wanted to
+						progressbar.printProgressBar(row_id)
+					if (row.xpath(question_path)):
 						self.__set_bitfield_users(row)
 						self.bitfield_posts[row_id] = True
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
@@ -160,9 +190,12 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
+			progressbar = ProgressBar(self.last_vote_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row'):
 					post_id = int(row.attrib['PostId'])
+					if(self.pretty_print): #Display the progress only if the user wanted to
+						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_posts[post_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
@@ -184,8 +217,11 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			try:
+				progressbar = ProgressBar(self.last_comment_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row'):
 					post_id = int(row.attrib['PostId'])
+					if(self.pretty_print): #Display the progress only if the user wanted to
+						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
@@ -207,8 +243,11 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			try:
+				progressbar = ProgressBar(self.last_postlink_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row'):
 					post_id = int(row.attrib['PostId'])
+					if(self.pretty_print):
+						progressbar.printProgressBar(int(row.attrib['Id']))
 					related_post_id = int(row.attrib['RelatedPostId'])
 					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
@@ -230,9 +269,12 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.USERS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
+			progressbar = ProgressBar(self.last_user_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row'):
 					user_id = int(row.attrib['Id'])
+					if(self.pretty_print and user_id>0):
+						progressbar.printProgressBar(user_id)
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
@@ -253,8 +295,11 @@ class StackExchangeFilter:
 		with open(output_path,'w') as output:
 			output.write('<%s>' %root_name)
 			try:
+				progressbar = ProgressBar(self.last_badge_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row'):
-					user_id = int(row.attrib['UserId'])		
+					user_id = int(row.attrib['UserId'])
+					if(self.pretty_print):
+						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
