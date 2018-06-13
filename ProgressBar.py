@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# coding: utf-8
 class ProgressBar():
     '''
     Class inspire by https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
