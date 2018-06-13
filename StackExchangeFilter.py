@@ -178,6 +178,10 @@ class StackExchangeFilter:
 								self.__set_bitfield_users(row)
 								output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]
+					while row.getprevious() is not None:
+						del row.getparent()[0]
 					del row
 				del context
 			except FileNotFoundError:
@@ -207,6 +211,8 @@ class StackExchangeFilter:
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]
 					del row
 				del context
 			except FileNotFoundError:
@@ -237,6 +243,8 @@ class StackExchangeFilter:
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]
 					del row
 				del context
 			except FileNotFoundError:
@@ -266,6 +274,8 @@ class StackExchangeFilter:
 					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]
 					del row
 				del context
 			except FileNotFoundError:
@@ -295,6 +305,8 @@ class StackExchangeFilter:
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]
 					del row
 				del context
 			except FileNotFoundError:
@@ -323,6 +335,8 @@ class StackExchangeFilter:
 					if (self.bitfield_users[user_id]):
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
+					while row.getprevious() is not None:
+						del row.getparent()[0]		
 					del row
 				del context
 			except Exception:
