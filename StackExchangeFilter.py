@@ -161,7 +161,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			progressbar = ProgressBar(self.last_post_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row'):
+				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row')
+				for event, row in context:
 					row_id = int(row.attrib['Id'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(row_id)
@@ -178,6 +179,7 @@ class StackExchangeFilter:
 								output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except FileNotFoundError:
 				print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
 				exit(1)
@@ -196,7 +198,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			progressbar = ProgressBar(self.last_vote_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row'):
+				context = etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row')
+				for event, row in context:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
@@ -205,6 +208,7 @@ class StackExchangeFilter:
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "vote" is present in the filepath')
 				exit(1)
@@ -224,7 +228,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_comment_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row'):
+				context =  etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row')
+				for event, row in context:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
@@ -233,6 +238,7 @@ class StackExchangeFilter:
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "comments" is present in the filepath')
 				exit(1)
@@ -251,7 +257,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_postlink_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row'):
+				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row')
+				for event, row in context:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
@@ -260,6 +267,7 @@ class StackExchangeFilter:
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "postlinks" is present in the filepath')
 				exit(1)
@@ -279,7 +287,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			progressbar = ProgressBar(self.last_user_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row'):
+				context = etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row')
+				for event, row in context :
 					user_id = int(row.attrib['Id'])
 					if(self.pretty_print and user_id>0):
 						progressbar.printProgressBar(user_id)
@@ -287,6 +296,7 @@ class StackExchangeFilter:
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "users" is present in the filepath')
 				exit(1)
@@ -305,7 +315,8 @@ class StackExchangeFilter:
 			output.write('<%s>' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_badge_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
-				for event, row in etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row'):
+				context = etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row')
+				for event, row in context:
 					user_id = int(row.attrib['UserId'])
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
@@ -313,6 +324,7 @@ class StackExchangeFilter:
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 					del row
+				del context
 			except Exception:
 				print('Please check if the dump of "badges" is present in the filepath')
 				exit(1)
