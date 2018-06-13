@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import os
 from ProgressBar import ProgressBar
 try:
@@ -49,7 +52,6 @@ class StackExchangeFilter:
 		'''
 		self.filepath =  filepath if filepath.endswith(os.sep) else filepath + os.sep
 		self.pretty_print = pretty_print
-		print(pretty_print)
 		index=0
 		row = ""
 		with FileReadBackwards(self.filepath + StackExchangeFilter.POSTS_FILEPATH, encoding="utf-8") as frb:
@@ -198,6 +200,7 @@ class StackExchangeFilter:
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_posts[post_id]):
+						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
 					row.clear()
 			except FileNotFoundError:

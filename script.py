@@ -12,15 +12,14 @@ args = parser.parse_args()
 
 ##Start script##
 print('Start')
-print(args.PrettyPrint)
 if(args.PrettyPrint is None):
 	filter = StackExchangeFilter(args.filepath)
 else :
 	filter = StackExchangeFilter(args.filepath,args.PrettyPrint)
 print('Extract posts')
 filter.posts(args.mainTag,args.extrasTags,args.minimumAnswers)
-print('Extract votes')
-filter.votes()
+#print('Extract votes')
+#filter.votes()
 print('Extract comments')
 filter.comments()
 print('Extract Posts links')
