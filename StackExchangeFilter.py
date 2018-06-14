@@ -58,8 +58,11 @@ class StackExchangeFilter:
 		    # getting lines by lines starting from the last line up
 		    for i in range(2):
 		    	row = frb.readline()
+		    	if(not row.strip()):
+		    		row = frb.readline()
 		row = ET.fromstring(row)
 		self.last_post_id = int(row.attrib['Id'])
+		print(self.last_post_id)
 		#Id of the last Post to know the length of the bitfield
 		self.bitfield_posts = bitarray(self.last_post_id+1)
 		self.bitfield_posts.setall(False)
@@ -206,7 +209,7 @@ class StackExchangeFilter:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
-					if (self.bitfield_posts[post_id]):
+					if (post_id<self.last_post_id and post_id<self.last_post_id and self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
@@ -238,7 +241,7 @@ class StackExchangeFilter:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
-					if (self.bitfield_posts[post_id]):
+					if (post_id<self.last_post_id and self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
 						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
@@ -270,7 +273,7 @@ class StackExchangeFilter:
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					related_post_id = int(row.attrib['RelatedPostId'])
-					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
+					if (post_id<self.last_post_id and self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
 						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
@@ -301,7 +304,7 @@ class StackExchangeFilter:
 					user_id = int(row.attrib['Id'])
 					if(self.pretty_print and user_id>0):
 						progressbar.printProgressBar(user_id)
-					if (self.bitfield_users[user_id]):
+					if (user_id<self.last_user_id and self.bitfield_users[user_id]):
 						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
@@ -331,7 +334,7 @@ class StackExchangeFilter:
 					user_id = int(row.attrib['UserId'])
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
-					if (self.bitfield_users[user_id]):
+					if (user_id<self.last_user_id and self.bitfield_users[user_id]):
 						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
