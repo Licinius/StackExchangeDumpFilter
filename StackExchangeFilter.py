@@ -180,9 +180,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
-					while row.getprevious() is not None:
-						del row.getparent()[0]
-					del row
 				del context
 			except FileNotFoundError:
 				print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
@@ -213,7 +210,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
-					del row
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "vote" is present in the filepath')
@@ -245,7 +241,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
-					del row
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "comments" is present in the filepath')
@@ -276,7 +271,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
-					del row
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "postlinks" is present in the filepath')
@@ -307,7 +301,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
-					del row
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "users" is present in the filepath')
@@ -337,7 +330,6 @@ class StackExchangeFilter:
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]		
-					del row
 				del context
 			except Exception:
 				print('Please check if the dump of "badges" is present in the filepath')
