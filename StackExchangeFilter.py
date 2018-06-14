@@ -158,7 +158,8 @@ class StackExchangeFilter:
 		question_path = 'self::*[%s @AnswerCount>=%s %s ]' %(main_filter,minimum_answers,extras_filters)
 		output_path = 'output/%s'% StackExchangeFilter.POSTS_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			progressbar = ProgressBar(self.last_post_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row')
@@ -169,14 +170,14 @@ class StackExchangeFilter:
 					if (row.xpath(question_path)):
 						self.__set_bitfield_users(row)
 						self.bitfield_posts[row_id] = True
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					else:
 						parent_id = row.attrib.get('ParentId')
 						if(parent_id is not None):
 							if(self.bitfield_posts[int(parent_id)]):
 								self.bitfield_posts[row_id] = True
 								self.__set_bitfield_users(row)
-								output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+								output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
@@ -196,7 +197,8 @@ class StackExchangeFilter:
 		root_name = 'votes'
 		output_path = 'output/%s'%   StackExchangeFilter.VOTES_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			progressbar = ProgressBar(self.last_vote_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				context = etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row')
@@ -206,7 +208,7 @@ class StackExchangeFilter:
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
@@ -227,7 +229,8 @@ class StackExchangeFilter:
 		root_name = 'comments'
 		output_path = 'output/%s'%   StackExchangeFilter.COMMENTS_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_comment_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context =  etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row')
@@ -237,7 +240,7 @@ class StackExchangeFilter:
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
@@ -257,7 +260,8 @@ class StackExchangeFilter:
 		root_name = 'postlinks'
 		output_path = 'output/%s'%   StackExchangeFilter.POSTLINKS_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_postlink_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row')
@@ -267,7 +271,7 @@ class StackExchangeFilter:
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					related_post_id = int(row.attrib['RelatedPostId'])
 					if (self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
@@ -288,7 +292,8 @@ class StackExchangeFilter:
 		root_name = 'users'
 		output_path = 'output/%s'%   StackExchangeFilter.USERS_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			progressbar = ProgressBar(self.last_user_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				context = etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row')
@@ -297,7 +302,7 @@ class StackExchangeFilter:
 					if(self.pretty_print and user_id>0):
 						progressbar.printProgressBar(user_id)
 					if (self.bitfield_users[user_id]):
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]
@@ -317,7 +322,8 @@ class StackExchangeFilter:
 		root_name = 'badges'
 		output_path = 'output/%s'%   StackExchangeFilter.BADGES_FILEPATH
 		with open(output_path,'w') as output:
-			output.write('<%s>' %root_name)
+			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+			output.write('<%s>\n  ' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_badge_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context = etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row')
@@ -326,7 +332,7 @@ class StackExchangeFilter:
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (self.bitfield_users[user_id]):
-						output.write(etree.tostring(row,pretty_print=True).decode('utf-8'))
+						output.write(etree.tostring(row).decode('utf-8'))
 					row.clear()
 					while row.getprevious() is not None:
 						del row.getparent()[0]		
