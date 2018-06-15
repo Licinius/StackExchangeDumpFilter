@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import sys
 from ProgressBar import ProgressBar
 try:
 	import xml.etree.ElementTree as ET
@@ -58,11 +59,8 @@ class StackExchangeFilter:
 		    # getting lines by lines starting from the last line up
 		    for i in range(2):
 		    	row = frb.readline()
-		    	if(not row.strip()):
-		    		row = frb.readline()
 		row = ET.fromstring(row)
 		self.last_post_id = int(row.attrib['Id'])
-		print(self.last_post_id)
 		#Id of the last Post to know the length of the bitfield
 		self.bitfield_posts = bitarray(self.last_post_id+1)
 		self.bitfield_posts.setall(False)
@@ -144,10 +142,10 @@ class StackExchangeFilter:
 		root_name = 'posts'
 		main_filter=''
 		if(main_tag is not None):
-			main_filter = 'contains(@Tags,"<%s>") and ' % main_tag
+			main_filter = 'contains(@Tags,"<%s>") ' % main_tag
 		extras_filters = ''
-		first=True
 		if(extras_tags is not None):
+			first=True	
 			extras_filters = ' and ('
 			for tag in extras_tags : 
 				if(first!=True):
@@ -156,39 +154,44 @@ class StackExchangeFilter:
 					first = False
 				extras_filters += ' contains(@Tags,"<%s>") ' %tag
 			extras_filters += ') '
-
-
-		question_path = 'self::*[%s @AnswerCount>=%s %s ]' %(main_filter,minimum_answers,extras_filters)
+		conditional_path=''
+		if(main_filter or extras_filters):
+			conditional_path = '[%s%s]' %(main_filter,extras_filters)
+		question_path='self::*%s'%conditional_path
 		output_path = 'output/%s'% StackExchangeFilter.POSTS_FILEPATH
-		with open(output_path,'w') as output:
-			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
-			progressbar = ProgressBar(self.last_post_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
-			try:
-				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH, tag='row')
-				for event, row in context:
-					row_id = int(row.attrib['Id'])
-					if(self.pretty_print): #Display the progress only if the user wanted to
-						progressbar.printProgressBar(row_id)
-					if (row.xpath(question_path)):
-						self.__set_bitfield_users(row)
-						self.bitfield_posts[row_id] = True
-						output.write(etree.tostring(row).decode('utf-8'))
-					else:
-						parent_id = row.attrib.get('ParentId')
-						if(parent_id is not None):
-							if(self.bitfield_posts[int(parent_id)]):
-								self.bitfield_posts[row_id] = True
-								self.__set_bitfield_users(row)
-								output.write(etree.tostring(row).decode('utf-8'))
+		output = open(output_path,'w')
+		output.write('<?xml version="1.0" encoding="utf-8"?>\n')
+		output.write('<%s>\n' %root_name)
+		progressbar = ProgressBar(self.last_post_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
+		try:
+			context = etree.iterparse(self.filepath + StackExchangeFilter.POSTS_FILEPATH,tag='row')
+			index_post = 0
+			index_clear = 0
+			for event, row in context:
+				row_id = int(row.attrib['Id'])
+				if(self.pretty_print): #Display the progress only if the user wanted to
+					progressbar.printProgressBar(row_id)
+				parent_id = row.attrib.get('ParentId')
+				if (row.xpath(question_path)):
+					self.__set_bitfield_users(row)
+					self.bitfield_posts[row_id] = True
+					index_post +=1
+					row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+					output.write(row_string)
+				elif(parent_id is not None and self.bitfield_posts[int(parent_id)]):
+					self.bitfield_posts[row_id] = True
+					self.__set_bitfield_users(row)
+					index_post +=1
+					row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+					output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]
-				del context
-			except FileNotFoundError:
-				print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
-				exit(1)
-			output.write('</%s>' %root_name)
+					row.getroottree().getroot().clear()
+			del context
+		except FileNotFoundError:
+			print('Invalid filepath : %s' %self.filepath + StackExchangeFilter.POSTS_FILEPATH)
+			exit(1)
+		output.write('</%s>' %root_name)
+		output.close()
 		return self
 
 	def votes(self):
@@ -201,7 +204,7 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.VOTES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
+			output.write('<%s>\n' %root_name)
 			progressbar = ProgressBar(self.last_vote_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				context = etree.iterparse(self.filepath + StackExchangeFilter.VOTES_FILEPATH,tag='row')
@@ -209,12 +212,12 @@ class StackExchangeFilter:
 					post_id = int(row.attrib['PostId'])
 					if(self.pretty_print): #Display the progress only if the user wanted to
 						progressbar.printProgressBar(int(row.attrib['Id']))
-					if (post_id<self.last_post_id and post_id<self.last_post_id and self.bitfield_posts[post_id]):
+					if (post_id<self.last_post_id and self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
-						output.write(etree.tostring(row).decode('utf-8'))
+						row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+						output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]
+					row.getroottree().getroot().clear()#Supression des noeuds inutiles
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "vote" is present in the filepath')
@@ -233,7 +236,7 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.COMMENTS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
+			output.write('<%s>\n' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_comment_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context =  etree.iterparse(self.filepath + StackExchangeFilter.COMMENTS_FILEPATH,tag='row')
@@ -243,10 +246,10 @@ class StackExchangeFilter:
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (post_id<self.last_post_id and self.bitfield_posts[post_id]):
 						self.__set_bitfield_users(row)
-						output.write(etree.tostring(row).decode('utf-8'))
+						row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+						output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]
+					row.getroottree().getroot().clear()#Supression des noeuds inutiles
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "comments" is present in the filepath')
@@ -264,20 +267,21 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.POSTLINKS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
+			output.write('<%s>\n' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_postlink_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context = etree.iterparse(self.filepath + StackExchangeFilter.POSTLINKS_FILEPATH,tag='row')
 				for event, row in context:
 					post_id = int(row.attrib['PostId'])
+					related_post_id = int(row.attrib['RelatedPostId'])
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
-					related_post_id = int(row.attrib['RelatedPostId'])
-					if (post_id<self.last_post_id and self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id]):
-						output.write(etree.tostring(row).decode('utf-8'))
+					if ((post_id<self.last_post_id and related_post_id<self.last_post_id) and 
+						(self.bitfield_posts[post_id] or self.bitfield_posts[related_post_id])):
+						row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+						output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]
+					row.getroottree().getroot().clear()#Supression des noeuds inutiles
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "postlinks" is present in the filepath')
@@ -296,7 +300,7 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.USERS_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
+			output.write('<%s>\n' %root_name)
 			progressbar = ProgressBar(self.last_user_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 			try:
 				context = etree.iterparse(self.filepath + StackExchangeFilter.USERS_FILEPATH,tag='row')
@@ -305,10 +309,10 @@ class StackExchangeFilter:
 					if(self.pretty_print and user_id>0):
 						progressbar.printProgressBar(user_id)
 					if (user_id<self.last_user_id and self.bitfield_users[user_id]):
-						output.write(etree.tostring(row).decode('utf-8'))
+						row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+						output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]
+					row.getroottree().getroot().clear()#Supression des noeuds inutiles
 				del context
 			except FileNotFoundError:
 				print('Please check if the dump of "users" is present in the filepath')
@@ -326,7 +330,7 @@ class StackExchangeFilter:
 		output_path = 'output/%s'%   StackExchangeFilter.BADGES_FILEPATH
 		with open(output_path,'w') as output:
 			output.write('<?xml version="1.0" encoding="utf-8"?>\n')
-			output.write('<%s>\n  ' %root_name)
+			output.write('<%s>\n' %root_name)
 			try:
 				progressbar = ProgressBar(self.last_badge_id, prefix = 'Progress:', suffix = 'Complete', length = 50)
 				context = etree.iterparse(self.filepath + StackExchangeFilter.BADGES_FILEPATH,tag='row')
@@ -335,10 +339,10 @@ class StackExchangeFilter:
 					if(self.pretty_print):
 						progressbar.printProgressBar(int(row.attrib['Id']))
 					if (user_id<self.last_user_id and self.bitfield_users[user_id]):
-						output.write(etree.tostring(row).decode('utf-8'))
+						row_string = "  " + etree.tostring(row,pretty_print=True,encoding="unicode").strip() + "\n"
+						output.write(row_string)
 					row.clear()
-					while row.getprevious() is not None:
-						del row.getparent()[0]		
+					row.getroottree().getroot().clear()#Supression des noeuds inutiles	
 				del context
 			except Exception:
 				print('Please check if the dump of "badges" is present in the filepath')
