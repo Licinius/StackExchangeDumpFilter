@@ -121,11 +121,10 @@ class StackExchangeFilter:
 			user_id = int(user_id)
 			self.bitfield_users[user_id] = True
 		return self.bitfield_users
-	def posts(self,main_tag,extras_tags,minimum_answers=0):
+	def posts(self,main_tag,extras_tags):
 		'''
 		This function will filter the posts of the dump like this
 			\\row[contains(@Tags,'<mainTag>')
-				and @AnswersCount >= minimum_answers
 				and (contains(@Tags,'<extras_tags[0]>')
 					or contains(@Tags,'<extras_tags[1]>')
 					...
